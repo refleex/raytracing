@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <omp.h>
 #include "math-toolkit.h"
 #include "primitives.h"
 #include "raytracing.h"
@@ -125,7 +126,6 @@ static int rayRectangularIntersection(const point3 ray_e,
 
     return 1;
 }
-
 static void localColor(color local_color,
                        const color light_color, double diffuse,
                        double specular, const object_fill *fill)
@@ -135,8 +135,7 @@ static void localColor(color local_color,
 
     /* Local Color = ambient * surface +
      *               light * ( kd * surface * diffuse + ks * specular)
-     */
-
+    */
     COPY_COLOR(diff, fill->fill_color);
     multiply_vector(diff, fill->Kd, diff);
     multiply_vector(diff, diffuse, diff);
@@ -316,7 +315,6 @@ static void rayConstruction(point3 d, const point3 u, const point3 v,
     subtract_vector(s, view->vrp, d);
     normalize(d);
 }
-
 static void calculateBasisVectors(point3 u, point3 v, point3 w,
                                   const viewpoint *view)
 {
@@ -340,7 +338,6 @@ static void protect_color_overflow(color c)
     for (int i = 0; i < 3; i++)
         if (c[i] > 1.0) c[i] = 1.0;
 }
-
 static unsigned int ray_color(const point3 e, double t,
                               const point3 d,
                               idx_stack *stk,
@@ -467,6 +464,7 @@ void raytracing(uint8_t *pixels, color background_color,
     idx_stack stk;
 
     int factor = sqrt(SAMPLES);
+    #pragma omp parallel for private(object_color,stk,d)
     for (int j = 0; j < height; j++) {
         for (int i = 0; i < width; i++) {
             double r = 0, g = 0, b = 0;
